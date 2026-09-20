@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bufo regularis — Interactive Dissection Atlas</title>
+<meta name="description" content="A three-dimensional, labelled dissection atlas of the African common toad (Bufo regularis) for university zoology practicals.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --tray:#0e1512;
+  --tray-deep:#080d0b;
+  --panel:#141c18;
+  --panel-2:#1b241f;
+  --line:#2a352e;
+  --bone:#e9e5d8;
+  --bone-dim:#a7ad9f;
+  --brass:#c9a227;
+  --muscle:#b4514a;
+  --viscera:#a8644a;
+  --uro:#c98f3f;
+  --nerve:#e0d9b0;
+  --skull:#ded6c2;
+  --focus:#6fd3b1;
+  --shadow:0 12px 34px rgba(0,0,0,.45);
+  --r-lg:14px; --r-md:9px; --r-sm:6px;
+  --ui:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  --serif:"Spectral",Georgia,"Times New Roman",serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+:root:not([data-theme="light"]){color-scheme:dark}
+:root[data-theme="light"]{
+  --tray:#eceae1; --tray-deep:#dfdcd0; --panel:#f6f4ec; --panel-2:#ebe8dd;
+  --line:#cfcabb; --bone:#1d241f; --bone-dim:#5d6459; --focus:#0f7a5c;
+  --shadow:0 12px 30px rgba(20,25,20,.18);
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:inherit}
+html,body{height:100%}
+body{
+  margin:0;font-family:var(--ui);background:var(--tray);color:var(--bone);
+  overflow:hidden;-webkit-text-size-adjust:100%;
+}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+
+/* ---------- layout ---------- */
+#app{display:grid;grid-template-columns:330px 1fr;grid-template-rows:auto auto 1fr;height:100%;width:100%}
+header.bar{
+  grid-column:1/-1;display:flex;align-items:center;gap:14px;
+  padding:10px 16px;background:linear-gradient(180deg,var(--panel),var(--tray));
+  border-bottom:1px solid var(--line);position:relative;z-index:30;
+  padding-top:calc(10px + env(safe-area-inset-top,0px));
+}
+.mark{font-family:var(--serif);font-size:18px;letter-spacing:.2px;line-height:1.1;white-space:nowrap}
+.mark i{font-style:italic}
+.mark small{display:block;font-family:var(--ui);font-size:11px;color:var(--bone-dim);letter-spacing:.3px}
+.bar-spacer{flex:1}
+.seg{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+.seg button{padding:6px 14px;border-radius:999px;font-size:13px;color:var(--bone-dim);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--brass);color:#14180e;font-weight:600}
+.icon-btn{width:38px;height:38px;border:1px solid var(--line);border-radius:var(--r-md);display:grid;place-items:center;background:var(--panel-2);color:var(--bone-dim)}
+.icon-btn:hover{color:var(--bone)}
+#menuBtn{display:none}
+
+aside{
+  background:var(--panel);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;min-height:0;z-index:20;
+}
+.scroll{overflow-y:auto;overscroll-behavior:contain;padding:14px 14px 30px;flex:1;min-height:0}
+.group{margin-bottom:20px}
+.group h2{
+  font-family:var(--serif);font-size:13px;font-weight:600;margin:0 0 9px;
+  color:var(--bone-dim);letter-spacing:.3px;
+}
+.sys{display:flex;flex-direction:column;gap:6px}
+.sys button{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:9px 11px;border-radius:var(--r-md);border:1px solid transparent;
+  background:var(--panel-2);font-size:13.5px;color:var(--bone-dim);
+}
+.sys button .sw{width:11px;height:11px;border-radius:3px;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.35) inset}
+.sys button .ct{margin-left:auto;font-size:11px;color:var(--bone-dim);opacity:.7}
+.sys button[aria-pressed="true"]{color:var(--bone);border-color:var(--line);background:linear-gradient(90deg,var(--panel-2),transparent)}
+.sys button[aria-pressed="true"] .sw{box-shadow:0 0 0 2px rgba(255,255,255,.14),0 0 10px currentColor}
+.sys button:hover{color:var(--bone)}
+
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:12px;color:var(--bone-dim)}
+.field .val{float:right;color:var(--bone);font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--brass);background:transparent}
+input[type=search]{
+  width:100%;padding:9px 11px;border-radius:var(--r-md);
+  border:1px solid var(--line);background:var(--tray-deep);font-size:13px;
+}
+.list{display:flex;flex-direction:column;gap:1px;max-height:none}
+.item{
+  display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:var(--r-sm);
+  font-size:13px;color:var(--bone-dim);text-align:left;width:100%;line-height:1.3;
+}
+.item:hover{background:var(--panel-2);color:var(--bone)}
+.item[aria-current="true"]{background:var(--panel-2);color:var(--bone);box-shadow:inset 2px 0 0 var(--brass)}
+.item .dot{width:8px;height:8px;border-radius:50%;flex:none}
+.item .hide{margin-left:auto;opacity:.45;font-size:11px}
+.item.off{opacity:.42;text-decoration:line-through}
+.sublabel{font-size:11px;color:var(--bone-dim);opacity:.75;margin-left:4px}
+
+/* ---------- stage ---------- */
+#stage{position:relative;min-height:0;background:
+  radial-gradient(120% 90% at 50% 0%,#17211c 0%,var(--tray) 45%,var(--tray-deep) 100%);}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+#labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+#leaders{position:absolute;inset:0;pointer-events:none}
+.lbl{
+  position:absolute;transform:translate(0,-50%);pointer-events:auto;cursor:pointer;
+  background:rgba(12,18,15,.86);border:1px solid var(--line);border-left:3px solid var(--brass);
+  padding:4px 8px;border-radius:5px;font-size:11.5px;line-height:1.25;white-space:nowrap;
+  backdrop-filter:blur(3px);color:var(--bone);box-shadow:0 3px 10px rgba(0,0,0,.35);
+}
+:root[data-theme="light"] .lbl{background:rgba(250,249,244,.9)}
+.lbl.right{transform:translate(-100%,-50%)}
+.lbl.on{border-left-color:var(--focus);color:var(--bone)}
+.pin{position:absolute;width:6px;height:6px;border-radius:50%;background:var(--brass);
+  transform:translate(-50%,-50%);box-shadow:0 0 0 3px rgba(201,162,39,.2)}
+
+.hud{position:absolute;left:14px;bottom:14px;display:flex;gap:6px;flex-wrap:wrap;z-index:6}
+.hud button{
+  padding:7px 11px;font-size:12px;border-radius:var(--r-md);border:1px solid var(--line);
+  background:rgba(16,22,19,.8);color:var(--bone-dim);backdrop-filter:blur(4px);
+}
+.hud button:hover{color:var(--bone)}
+.hud button[aria-pressed="true"]{color:#14180e;background:var(--brass);font-weight:600}
+
+#info{
+  position:absolute;right:14px;top:14px;width:290px;max-width:calc(100% - 28px);
+  background:rgba(16,22,19,.92);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:14px 15px;box-shadow:var(--shadow);backdrop-filter:blur(6px);z-index:8;
+}
+:root[data-theme="light"] #info,:root[data-theme="light"] .hud button{background:rgba(246,244,236,.94)}
+#info h3{font-family:var(--serif);font-size:17px;margin:0 0 2px;line-height:1.2}
+#info .tag{font-size:11px;color:var(--bone-dim);margin-bottom:8px}
+#info p{margin:0;font-size:13px;line-height:1.55;color:var(--bone-dim);font-family:var(--serif)}
+#info .row{display:flex;gap:8px;margin-top:11px}
+#info .row button{flex:1;padding:7px;border:1px solid var(--line);border-radius:var(--r-sm);font-size:12px;color:var(--bone-dim)}
+#info .row button:hover{color:var(--bone);background:var(--panel-2)}
+#info .close{position:absolute;right:9px;top:9px;color:var(--bone-dim);font-size:16px;line-height:1;padding:4px}
+
+#quiz{
+  position:absolute;left:50%;top:14px;transform:translateX(-50%);z-index:9;
+  background:rgba(16,22,19,.93);border:1px solid var(--line);border-radius:var(--r-lg);
+  padding:11px 16px;text-align:center;box-shadow:var(--shadow);min-width:260px;max-width:92%;
+}
+:root[data-theme="light"] #quiz{background:rgba(246,244,236,.95)}
+#quiz .q{font-family:var(--serif);font-size:15px}
+#quiz .q b{color:var(--brass);font-weight:600}
+#quiz .fb{font-size:12px;margin-top:5px;color:var(--bone-dim);min-height:16px}
+#quiz .fb.ok{color:var(--focus)}
+#quiz .fb.no{color:var(--muscle)}
+#quiz .sc{font-size:11px;color:var(--bone-dim);margin-top:4px;font-variant-numeric:tabular-nums}
+
+#boot{position:absolute;inset:0;display:grid;place-items:center;background:var(--tray);z-index:40;transition:opacity .5s}
+#boot .in{text-align:center;max-width:320px;padding:20px}
+#boot p{font-family:var(--serif);font-size:15px;color:var(--bone-dim);line-height:1.5}
+.pulse{width:150px;height:2px;background:var(--line);margin:16px auto 0;overflow:hidden;border-radius:2px}
+.pulse i{display:block;width:40%;height:100%;background:var(--brass);animation:slide 1.1s infinite ease-in-out}
+@keyframes slide{0%{transform:translateX(-100%)}100%{transform:translateX(300%)}}
+@media (prefers-reduced-motion:reduce){.pulse i{animation:none;width:100%}}
+
+.credits{
+  grid-column:1/-1;background:linear-gradient(90deg,var(--tray-deep),#101d16 55%,#132318);
+  border-bottom:1px solid var(--line);padding:12px 22px;text-align:right;z-index:29;
+}
+.credits span{display:block;font-family:var(--serif);color:#cdd6c9;font-size:16px;line-height:1.5}
+.credits span+span{font-size:15px;color:#b6c2b5}
+:root[data-theme="light"] .credits{background:linear-gradient(90deg,#e4e2d7,#e9ece2)}
+:root[data-theme="light"] .credits span{color:#2c3830}
+:root[data-theme="light"] .credits span+span{color:#4a564b}
+@media (max-width:860px){.credits{padding:9px 14px}.credits span{font-size:12.5px}.credits span+span{font-size:12px}}
+
+.hint{font-size:11.5px;color:var(--bone-dim);line-height:1.5;margin:10px 0 0;font-family:var(--serif)}
+.credit{font-size:11px;color:var(--bone-dim);opacity:.7;line-height:1.5;border-top:1px solid var(--line);padding-top:10px;margin-top:6px}
+
+@media (max-width:860px){
+  #app{grid-template-columns:1fr}
+  #menuBtn{display:grid}
+  aside{
+    position:fixed;left:0;right:0;bottom:0;top:auto;max-height:72vh;
+    border-right:none;border-top:1px solid var(--line);
+    border-radius:var(--r-lg) var(--r-lg) 0 0;transform:translateY(102%);
+    transition:transform .25s ease;box-shadow:var(--shadow);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  aside.open{transform:translateY(0)}
+  .grab{width:40px;height:4px;background:var(--line);border-radius:3px;margin:9px auto 2px}
+  #stage{grid-column:1/-1}
+  #info{width:auto;left:12px;right:12px;top:auto;bottom:62px}
+  .hud{bottom:12px;left:12px;right:12px;justify-content:center}
+  .mark small{display:none}
+}
+@media (min-width:861px){.grab{display:none}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="bar">
+    <div class="mark"><i>Bufo regularis</i> — dissection atlas<small>Interactive 3-D practical companion · zoology</small></div>
+    <div class="bar-spacer"></div>
+    <div class="seg" role="group" aria-label="Specimen sex">
+      <button id="sexF" aria-pressed="true">Female</button>
+      <button id="sexM" aria-pressed="false">Male</button>
+    </div>
+    <button class="icon-btn" id="themeBtn" title="Switch between dark and light tray">◐</button>
+    <button class="icon-btn" id="menuBtn" title="Open controls">☰</button>
+  </header>
+
+  <div class="credits">
+    <span>Course Instructor: Prof. Gehan Safwat</span>
+    <span>Prepared for Zoology · MSA University, Faculty of Biotechnology</span>
+  </div>
+
+  <aside id="side">
+    <div class="grab"></div>
+    <div class="scroll">
+      <div class="group">
+        <h2>Layers</h2>
+        <div class="sys" id="sysList"></div>
+      </div>
+
+      <div class="group">
+        <h2>Display</h2>
+        <div class="field">
+          <label for="explode">Separate layers <span class="val" id="explodeVal">0%</span></label>
+          <input type="range" id="explode" min="0" max="100" value="0">
+        </div>
+        <div class="field">
+          <label for="skin">Body wall transparency <span class="val" id="skinVal">80%</span></label>
+          <input type="range" id="skin" min="0" max="100" value="80">
+        </div>
+      </div>
+
+      <div class="group">
+        <h2>Structures</h2>
+        <div class="field"><input type="search" id="search" placeholder="Search a structure…" autocomplete="off"></div>
+        <div class="list" id="structList"></div>
+        <p class="hint" id="listHint"></p>
+      </div>
+
+      <div class="group">
+        <h2>About this model</h2>
+        <p class="hint">Proportions follow standard <i>Bufo regularis</i> practical dissections: ventral muscle sheets, viscera <i>in situ</i>, the urinogenital complex of both sexes, the ten pairs of spinal nerves, and the dorsal skull.</p>
+        <p class="credit">Built as a teaching schematic, not a specimen scan — use it to learn positions, relations and names, and confirm fine detail against your own dissection and your practical manual.</p>
+      </div>
+    </div>
+  </aside>
+
+  <main id="stage">
+    <canvas id="c"></canvas>
+    <svg id="leaders"></svg>
+    <div id="labels"></div>
+
+    <div class="hud">
+      <button data-view="ventral">Ventral</button>
+      <button data-view="dorsal">Dorsal</button>
+      <button data-view="lateral">Lateral</button>
+      <button data-view="head">Head</button>
+      <button id="labelBtn" aria-pressed="true">Labels</button>
+      <button id="quizBtn" aria-pressed="false">Identify mode</button>
+    </div>
+
+    <div id="info" hidden>
+      <button class="close" id="infoClose" aria-label="Close">×</button>
+      <h3 id="infoName"></h3>
+      <div class="tag" id="infoTag"></div>
+      <p id="infoText"></p>
+      <div class="row">
+        <button id="isolateBtn">Isolate</button>
+        <button id="focusBtn">Fly to</button>
+      </div>
+    </div>
+
+    <div id="quiz" hidden>
+      <div class="q">Find the <b id="quizTarget"></b></div>
+      <div class="fb" id="quizFb">Tap the structure on the model.</div>
+      <div class="sc" id="quizScore"></div>
+    </div>
+
+    <div id="boot"><div class="in">
+      <p>Laying out the specimen…</p>
+      <div class="pulse"><i></i></div>
+    </div></div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* =========================================================================
+   Bufo regularis interactive dissection atlas
+   Single-file WebGL teaching model. No build step, no bundler: open in a
+   browser or serve the folder from VS Code (Live Server) and it runs.
+   ========================================================================= */
+(function () {
+"use strict";
+
+if (typeof THREE === "undefined") {
+  document.getElementById("boot").innerHTML =
+    '<div class="in"><p>The 3-D library did not load. Check your internet connection and reload — the page pulls three.js from a CDN.</p></div>';
+  return;
+}
+
+/* ---------------------------------------------------------------- scene */
+var canvas = document.getElementById("c");
+var stage = document.getElementById("stage");
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: false });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera(42, 1, 0.1, 400);
+var root = new THREE.Group();          // whole animal
+scene.add(root);
+
+function light(c, i, x, y, z) {
+  var l = new THREE.DirectionalLight(c, i); l.position.set(x, y, z); scene.add(l); return l;
+}
+light(0xffffff, 0.85, 6, 9, 10);
+light(0xcfe3ff, 0.42, -8, -5, -6);
+light(0xffe9c4, 0.30, 0, -10, 6);
+scene.add(new THREE.HemisphereLight(0xdfe9e3, 0x0a0f0c, 0.55));
+scene.add(new THREE.AmbientLight(0xffffff, 0.18));
+
+/* --------------------------------------------------- orbit controls (own) */
+var ctl = {
+  target: new THREE.Vector3(0, -0.2, -0.6),
+  dist: 16, theta: Math.PI, phi: 2.15,     // start: ventral-ish, head up-screen, in close
+  tTarget: new THREE.Vector3(0, -0.2, -0.6), tDist: 16, tTheta: Math.PI, tPhi: 2.15,
+  minD: 2.5, maxD: 90
+};
+function applyCam() {
+  ctl.theta += (ctl.tTheta - ctl.theta) * 0.16;
+  ctl.phi += (ctl.tPhi - ctl.phi) * 0.16;
+  ctl.dist += (ctl.tDist - ctl.dist) * 0.16;
+  ctl.target.lerp(ctl.tTarget, 0.16);
+  var sp = Math.sin(ctl.phi);
+  camera.position.set(
+    ctl.target.x + ctl.dist * sp * Math.sin(ctl.theta),
+    ctl.target.y + ctl.dist * Math.cos(ctl.phi),
+    ctl.target.z + ctl.dist * sp * Math.cos(ctl.theta)
+  );
+  camera.up.set(0, 1, 0);
+  camera.lookAt(ctl.target);
+}
+function clampPhi(p) { return Math.max(0.02, Math.min(Math.PI - 0.02, p)); }
+
+var ptrs = {}, lastDist = 0, moved = 0, downAt = 0;
+canvas.addEventListener("pointerdown", function (e) {
+  canvas.setPointerCapture(e.pointerId);
+  ptrs[e.pointerId] = { x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY };
+  moved = 0; downAt = Date.now();
+});
+canvas.addEventListener("pointermove", function (e) {
+  var p = ptrs[e.pointerId]; if (!p) return;
+  var dx = e.clientX - p.x, dy = e.clientY - p.y;
+  p.x = e.clientX; p.y = e.clientY;
+  moved += Math.abs(dx) + Math.abs(dy);
+  var ids = Object.keys(ptrs);
+  if (ids.length === 1) {
+    if (e.shiftKey || e.button === 2) pan(dx, dy);
+    else { ctl.tTheta -= dx * 0.0078; ctl.tPhi = clampPhi(ctl.tPhi - dy * 0.0078); }
+  } else if (ids.length === 2) {
+    var a = ptrs[ids[0]], b = ptrs[ids[1]];
+    var d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (lastDist) ctl.tDist = Math.max(ctl.minD, Math.min(ctl.maxD, ctl.tDist * (lastDist / d)));
+    lastDist = d;
+  }
+});
+function endPtr(e) { delete ptrs[e.pointerId]; if (Object.keys(ptrs).length < 2) lastDist = 0; }
+canvas.addEventListener("pointerup", endPtr);
+canvas.addEventListener("pointercancel", endPtr);
+canvas.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+canvas.addEventListener("wheel", function (e) {
+  e.preventDefault();
+  ctl.tDist = Math.max(ctl.minD, Math.min(ctl.maxD, ctl.tDist * (1 + Math.sign(e.deltaY) * 0.11)));
+}, { passive: false });
+function pan(dx, dy) {
+  var k = ctl.dist * 0.0013;
+  var right = new THREE.Vector3().subVectors(camera.position, ctl.target).cross(camera.up).normalize();
+  var up = new THREE.Vector3().crossVectors(right, new THREE.Vector3().subVectors(camera.position, ctl.target)).normalize();
+  ctl.tTarget.addScaledVector(right, -dx * k).addScaledVector(up, -dy * k);
+}
+window.addEventListener("keydown", function (e) {
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === "ArrowLeft") ctl.tTheta -= 0.18;
+  if (e.key === "ArrowRight") ctl.tTheta += 0.18;
+  if (e.key === "ArrowUp") ctl.tPhi = clampPhi(ctl.tPhi - 0.12);
+  if (e.key === "ArrowDown") ctl.tPhi = clampPhi(ctl.tPhi + 0.12);
+  if (e.key === "+" || e.key === "=") ctl.tDist = Math.max(ctl.minD, ctl.tDist * 0.9);
+  if (e.key === "-") ctl.tDist = Math.min(ctl.maxD, ctl.tDist * 1.1);
+  if (e.key === "Escape") { clearSelection(); }
+});
+
+/* ------------------------------------------------------ geometry helpers */
+var V = function (x, y, z) { return new THREE.Vector3(x, y, z); };
+
+/* parametric surface builder: fn(u,v) -> [x,y,z] */
+function paramGeo(fn, nu, nv, closedV) {
+  var pos = [], uvs = [], idx = [], i, j, p;
+  for (i = 0; i <= nu; i++) for (j = 0; j <= nv; j++) {
+    p = fn(i / nu, j / nv);
+    pos.push(p[0], p[1], p[2]); uvs.push(i / nu, j / nv);
+  }
+  for (i = 0; i < nu; i++) for (j = 0; j < nv; j++) {
+    var a = i * (nv + 1) + j, b = a + nv + 1;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  var g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(uvs, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+
+function ellipsoid(rx, ry, rz, seg) {
+  var g = new THREE.SphereGeometry(1, seg || 26, (seg || 26) * 0.7 | 0);
+  g.scale(rx, ry, rz); return g;
+}
+function at(g, x, y, z) { g.translate(x, y, z); return g; }
+function rot(g, rx, ry, rz) {
+  if (rx) g.rotateX(rx); if (ry) g.rotateY(ry); if (rz) g.rotateZ(rz); return g;
+}
+function curve(pts) {
+  return new THREE.CatmullRomCurve3(pts.map(function (p) { return V(p[0], p[1], p[2]); }));
+}
+/* tube with variable radius along the path */
+function varTube(pts, rFn, seg, rad) {
+  seg = seg || 64; rad = rad || 10;
+  var c = curve(pts), fr = c.computeFrenetFrames(seg, false);
+  return paramGeo(function (u, v) {
+    var i = Math.min(Math.round(u * seg), seg);
+    var P = c.getPoint(u), N = fr.normals[i], B = fr.binormals[i];
+    var a = v * Math.PI * 2, r = (typeof rFn === "function") ? rFn(u) : rFn;
+    return [P.x + r * (Math.cos(a) * N.x + Math.sin(a) * B.x),
+            P.y + r * (Math.cos(a) * N.y + Math.sin(a) * B.y),
+            P.z + r * (Math.cos(a) * N.z + Math.sin(a) * B.z)];
+  }, seg, rad);
+}
+function tube(pts, r, seg) { return varTube(pts, r, seg || 60, 10); }
+
+/* ruled sheet between two polylines — used for fan-shaped muscles */
+function sheet(ptsA, ptsB, nu, nv, bulge) {
+  var a = curve(ptsA), b = curve(ptsB);
+  nu = nu || 24; nv = nv || 10; bulge = bulge || 0;
+  return paramGeo(function (u, v) {
+    var pa = a.getPoint(u), pb = b.getPoint(u);
+    var p = pa.clone().lerp(pb, v);
+    if (bulge) {
+      var n = new THREE.Vector3().subVectors(pb, pa).normalize();
+      var t = a.getTangent(u);
+      var out = new THREE.Vector3().crossVectors(t, n).normalize();
+      p.addScaledVector(out, bulge * Math.sin(Math.PI * v) * Math.sin(Math.PI * u) * 1.0);
+    }
+    return [p.x, p.y, p.z];
+  }, nu, nv);
+}
+
+/* ------- trunk geometry: everything hugs one reference body ellipsoid ---- */
+var BODY = { cx: 0, cy: 0, cz: -0.5, rx: 2.55, ry: 1.72, rz: 3.55 };
+var HEAD = { cx: 0, cy: -0.28, cz: 3.15, rx: 2.18, ry: 1.28, rz: 2.10 };
+
+function trunkPoint(theta, z, k) {   // theta 0 = ventral midline, +ve = animal's right
+  var t = 1 - Math.pow((z - BODY.cz) / BODY.rz, 2);
+  var s = Math.sqrt(Math.max(t, 0.015));
+  k = k === undefined ? 1 : k;
+  return [BODY.cx + BODY.rx * s * Math.sin(theta) * k,
+          BODY.cy - BODY.ry * s * Math.cos(theta) * k,
+          z];
+}
+/* a curved muscle sheet lying on the body wall */
+function trunkPatch(th0, th1, z0, z1, k, nu, nv) {
+  return paramGeo(function (u, v) {
+    return trunkPoint(th0 + (th1 - th0) * v, z0 + (z1 - z0) * u, k);
+  }, nu || 22, nv || 10);
+}
+function headPoint(theta, z, k) {
+  var t = 1 - Math.pow((z - HEAD.cz) / HEAD.rz, 2);
+  var s = Math.sqrt(Math.max(t, 0.02));
+  k = k === undefined ? 1 : k;
+  return [HEAD.cx + HEAD.rx * s * Math.sin(theta) * k,
+          HEAD.cy - HEAD.ry * s * Math.cos(theta) * k, z];
+}
+function headPatch(th0, th1, z0, z1, k) {
+  return paramGeo(function (u, v) {
+    return headPoint(th0 + (th1 - th0) * v, z0 + (z1 - z0) * u, k);
+  }, 16, 12);
+}
+
+/* ------------------------- limbs: axis + muscles wrapped around the axis */
+function Limb(p0, p1, r0, r1) {
+  this.p0 = V(p0[0], p0[1], p0[2]); this.p1 = V(p1[0], p1[1], p1[2]);
+  this.r0 = r0; this.r1 = r1;
+  this.axis = new THREE.Vector3().subVectors(this.p1, this.p0);
+  this.len = this.axis.length(); this.axis.normalize();
+  // U = ventral direction perpendicular to axis, V = lateral
+  var down = V(0, -1, 0);
+  this.U = down.clone().addScaledVector(this.axis, -down.dot(this.axis)).normalize();
+  this.Vv = new THREE.Vector3().crossVectors(this.axis, this.U).normalize();
+}
+Limb.prototype.point = function (t, angDeg, k) {
+  var a = angDeg * Math.PI / 180;
+  var r = (this.r0 + (this.r1 - this.r0) * t) * (k === undefined ? 1 : k);
+  var c = this.p0.clone().addScaledVector(this.axis, this.len * t);
+  return c.addScaledVector(this.U, Math.cos(a) * r).addScaledVector(this.Vv, Math.sin(a) * r);
+};
+/* muscle band lying on a limb: t0..t1 along the limb, angC±angH around it */
+function limbMuscle(L, t0, t1, angC, angH, k, bulge) {
+  k = k === undefined ? 1.04 : k; bulge = bulge === undefined ? 0.18 : bulge;
+  return paramGeo(function (u, v) {
+    var t = t0 + (t1 - t0) * u;
+    var ang = angC + (v * 2 - 1) * angH;
+    var swell = 1 + bulge * Math.sin(Math.PI * u) * Math.cos((v - 0.5) * Math.PI * 0.9);
+    var p = L.point(t, ang, k * swell);
+    return [p.x, p.y, p.z];
+  }, 20, 12);
+}
+
+/* ----------------------------------------------------------- materials */
+function mat(color, opts) {
+  opts = opts || {};
+  var m = new THREE.MeshStandardMaterial({
+    color: new THREE.Color(color),
+    roughness: opts.rough === undefined ? 0.72 : opts.rough,
+    metalness: 0.02,
+    side: THREE.DoubleSide,
+    transparent: true,
+    opacity: opts.opacity === undefined ? 1 : opts.opacity,
+    flatShading: !!opts.flat
+  });
+  m.emissive = new THREE.Color(color).multiplyScalar(0.06);
+  return m;
+}
+
+/* ============================================================ registry */
+var SYSTEMS = [
+  { id: "body",     name: "Body wall & outline", color: "#8fa093" },
+  { id: "muscular", name: "Muscular system",     color: "#b4544c" },
+  { id: "visceral", name: "Visceral system",     color: "#c07a52" },
+  { id: "uro",      name: "Urinogenital system", color: "#dca94a" },
+  { id: "nervous",  name: "Nervous system",      color: "#efe4b8" },
+  { id: "skull",    name: "Skull",               color: "#ded6c2" }
+];
+
+var STRUCTS = [], byId = {};
+var pickables = [];
+
+function add(def) {
+  var geos = Array.isArray(def.geo) ? def.geo : [def.geo];
+  var m = mat(def.color, { opacity: def.opacity, rough: def.rough, flat: def.flat });
+  var grp = new THREE.Group();
+  var main = null;
+  geos.forEach(function (g, i) {
+    var me = new THREE.Mesh(g, m);
+    me.userData.id = def.id;
+    grp.add(me); pickables.push(me);
+    if (i === 0) main = me;
+  });
+  if (def.mirror) {
+    geos.forEach(function (g) {
+      var me = new THREE.Mesh(g, m);
+      me.scale.x = -1; me.userData.id = def.id;
+      grp.add(me); pickables.push(me);
+    });
+  }
+  main.geometry.computeBoundingBox();
+  var bb = main.geometry.boundingBox, c = new THREE.Vector3();
+  bb.getCenter(c);
+  var anchor = def.anchor ? V(def.anchor[0], def.anchor[1], def.anchor[2]) : c;
+  var dir = def.dir ? V(def.dir[0], def.dir[1], def.dir[2]).normalize()
+                    : anchor.clone().sub(V(0, 0, -0.5)).normalize();
+  if (!isFinite(dir.x) || dir.lengthSq() < 0.01) dir = V(0, -1, 0);
+
+  var s = {
+    id: def.id, name: def.name, sub: def.sub || "", note: def.note || "",
+    sys: def.sys, sex: def.sex || null, color: def.color,
+    group: grp, anchor: anchor, dir: dir, baseOpacity: def.opacity === undefined ? 1 : def.opacity,
+    material: m, label: def.label !== false, visible: true
+  };
+  STRUCTS.push(s); byId[def.id] = s; root.add(grp);
+  return s;
+}
+
+/* ===================================================== 1. body wall */
+function buildBody() {
+  var skin = paramGeo(function (u, v) {
+    var z = 5.35 - u * 9.9;                     // snout -> vent
+    var th = v * Math.PI * 2;
+    var mix = THREE.MathUtils.clamp((z - 1.6) / 1.6, 0, 1); // blend head into trunk
+    var a = trunkPoint(th, Math.min(z, 1.9), 1.0);
+    var b = headPoint(th, Math.max(z, 1.9), 1.0);
+    var p = [a[0] * (1 - mix) + b[0] * mix, a[1] * (1 - mix) + b[1] * mix, z];
+    var warty = 1 + 0.012 * Math.sin(th * 9) * Math.sin(u * 26);
+    return [p[0] * warty, p[1] * warty, z];
+  }, 70, 46);
+
+  var limbSkin = [];
+  [1, -1].forEach(function (s) {
+    limbSkin.push(varTube([[s * 1.3, -0.5, -3.3], [s * 2.4, -0.8, -4.7], [s * 3.35, -0.95, -6.0],
+                           [s * 3.42, -0.95, -7.6], [s * 3.45, -0.95, -9.1], [s * 3.7, -1.0, -10.4],
+                           [s * 3.9, -1.05, -11.6]],
+      function (u) { return 1.05 - 0.72 * u + 0.18 * Math.sin(Math.PI * u * 2); }, 50, 14));
+    limbSkin.push(varTube([[s * 1.8, -0.6, 1.9], [s * 2.7, -1.0, 2.25], [s * 3.5, -1.25, 2.6],
+                           [s * 4.2, -1.4, 3.2]],
+      function (u) { return 0.62 - 0.3 * u; }, 34, 12));
+    // toes
+    for (var t = -1; t <= 1; t++) {
+      limbSkin.push(varTube([[s * 3.9, -1.05, -11.6], [s * (3.9 + t * 0.5), -1.05, -12.5],
+                             [s * (3.9 + t * 0.85), -1.05, -13.3]],
+        function (u) { return 0.19 - 0.09 * u; }, 16, 8));
+    }
+  });
+
+  add({
+    id: "bodywall", name: "Body wall (skin & outline)", sys: ["body"],
+    color: "#7f9186", opacity: 0.2, rough: 0.9,
+    geo: [skin].concat(limbSkin),
+    anchor: [0, -1.7, 0.4], label: false,
+    note: "Translucent outline of the specimen. Drop its transparency to place every deeper layer in its true position inside the animal."
+  });
+}
+
+/* ================================================= 2. muscular system */
+function buildMuscular() {
+  var M = "#b4544c", M2 = "#9e463f", M3 = "#c2685c", CART = "#ded4bd";
+
+  add({ id: "ant_interman", name: "Intermandibularis anterior", sys: ["muscular"], color: M3,
+    geo: headPatch(-0.95, 0.95, 4.15, 4.85, 1.03), anchor: [0, -1.0, 4.5],
+    note: "Thin transverse sheet in the floor of the mouth, just behind the symphysis of the lower jaw. It raises the buccal floor during buccal-pumping respiration." });
+
+  add({ id: "post_interman", name: "Intermandibularis posterior", sys: ["muscular"], color: M,
+    geo: headPatch(-1.15, 1.15, 2.95, 4.1, 1.03), anchor: [0, -1.15, 3.5],
+    note: "The larger posterior sheet of the same series, running between the two rami of the mandible behind the anterior portion; also compresses the buccal cavity." });
+
+  // pectoral fan: three heads converging on the humerus
+  var hum = [[1.95, -0.85, 1.95], [2.1, -0.95, 1.75], [2.15, -1.0, 1.55]];
+  function pect(id, name, zA, zB, insert, col, note) {
+    var g = sheet(
+      [trunkPoint(0.08, zA, 1.05), trunkPoint(0.25, (zA + zB) / 2, 1.05), trunkPoint(0.45, zB, 1.04)],
+      [[insert[0] - 0.55, insert[1] + 0.15, insert[2] + 0.25], insert, [insert[0] - 0.2, insert[1] - 0.1, insert[2] - 0.3]],
+      22, 12, 0.12);
+    add({ id: id, name: name, sys: ["muscular"], color: col, mirror: true, geo: g,
+      anchor: [(trunkPoint(0.3, (zA + zB) / 2, 1.05)[0] + insert[0]) / 2, insert[1] - 0.1, (zA + zB) / 2 + 0.2],
+      note: note });
+  }
+  pect("pect_ant", "Pectoralis anterior", 2.6, 1.9, hum[0], M3,
+    "Most anterior head of the pectoralis, arising from the anterior end of the sternum and inserting on the proximal humerus; it draws the forelimb forwards and medially.");
+  pect("pect_med", "Pectoralis medius", 1.9, 1.0, hum[1], M,
+    "Middle head, arising from the sternum and adjacent fascia. Together with its fellows it adducts the forelimb — the grip used by the male in amplexus.");
+  pect("pect_post", "Pectoralis posterior", 1.0, -0.2, hum[2], M2,
+    "Broad posterior head arising from the linea alba and abdominal fascia; it retracts and adducts the humerus.");
+
+  add({ id: "obl_ext", name: "Obliquus externus", sys: ["muscular"], color: M2, mirror: true,
+    geo: trunkPatch(0.42, 1.45, 1.5, -2.9, 1.035, 26, 14), anchor: [2.1, -0.65, -0.7],
+    note: "Superficial sheet of the flank whose fibres run obliquely backwards and downwards. It compresses the abdomen and is the layer removed first to expose the rectus." });
+
+  add({ id: "rectus", name: "Rectus abdominis", sys: ["muscular"], color: M, mirror: true,
+    geo: trunkPatch(0.035, 0.40, 1.9, -3.2, 1.02, 26, 10), anchor: [0.75, -1.5, -0.8],
+    note: "Longitudinal ventral muscle running from the sternum to the pubis, divided by the linea alba in the midline and crossed by tendinous inscriptions." });
+
+  add({ id: "linea_alba", name: "Linea alba", sys: ["muscular"], color: "#efe9d6", rough: 0.55,
+    geo: trunkPatch(-0.05, 0.05, 1.95, -3.25, 1.028, 26, 4), anchor: [0, -1.72, -0.75],
+    note: "Pale midventral tendinous seam where the fibrous sheaths of both rectus abdominis muscles meet; it has no muscle fibres of its own and is the conventional line along which the body wall is opened in dissection." });
+
+  add({ id: "xiphoid", name: "Xiphoid cartilage", sys: ["muscular"], color: CART,
+    geo: [at(ellipsoid(0.85, 0.12, 0.62, 20), 0, -1.58, 1.05)], anchor: [0, -1.62, 1.05],
+    note: "Flat cartilaginous plate at the posterior end of the sternum, between the pectoral muscles — the landmark for opening the body wall without cutting the heart." });
+
+  var thigh = new Limb([1.35, -0.55, -3.45], [3.35, -0.95, -6.0], 0.92, 0.66);
+  var shank = new Limb([3.35, -0.95, -6.0], [3.45, -0.95, -9.1], 0.66, 0.40);
+
+  function lm(id, name, L, t0, t1, ang, half, col, note, k, bulge) {
+    add({ id: id, name: name, sys: ["muscular"], color: col, mirror: true,
+      geo: limbMuscle(L, t0, t1, ang, half, k, bulge), note: note,
+      anchor: (function () { var p = L.point((t0 + t1) / 2, ang, (k || 1.06) * 1.12); return [p.x, p.y, p.z]; })() });
+  }
+  lm("add_magnus", "Adductor magnus", thigh, 0.02, 0.95, 78, 30, M2,
+    "Large triangular muscle on the inner (medial) face of the thigh, arising from the ischium and inserting on the femur; it pulls the thigh towards the midline.", 1.02, 0.30);
+  lm("add_longus", "Adductor longus", thigh, 0.02, 0.92, 40, 13, M3,
+    "Slender strap lying in front of the adductor magnus, arising from the ilium and inserted on the femur — a useful surface landmark in the ventral thigh.", 1.10, 0.22);
+  lm("sartorius", "Sartorius", thigh, 0.0, 1.0, 12, 13, M3,
+    "Ribbon-like superficial muscle crossing the ventral face of the thigh obliquely, from the pubis to the tibio-fibula; it flexes the shank.", 1.12, 0.18);
+  lm("vastus_int", "Vastus internus", thigh, 0.05, 0.95, -48, 24, M,
+    "Part of the triceps femoris complex on the antero-lateral thigh; it extends the shank at the knee.", 1.06, 0.30);
+  lm("gracilis", "Gracilis (major & minor)", thigh, 0.0, 1.0, 138, 36, M,
+    "Broad muscle covering the posterior and medial thigh in two heads. Its common tendon crosses the knee, and it is the muscle most often used in nerve–muscle preparations.", 1.04, 0.28);
+  lm("cut_cruralis", "Cutaneus cruris", thigh, 0.45, 1.25, 22, 8, "#cf8a7b",
+    "Thin superficial band running in the skin fascia across the knee onto the shank; it is reflected with the skin unless dissected carefully.", 1.22, 0.06);
+
+  lm("gastroc", "Gastrocnemius", shank, 0.0, 0.92, 168, 48, M,
+    "The largest muscle of the shank, forming its posterior bulge. Its tendo Achillis passes over the heel to the sole, and it extends the foot in the propulsive stroke of the jump.", 1.06, 0.40);
+  lm("tib_ant", "Tibialis anticus", shank, 0.05, 0.95, 4, 26, M3,
+    "Anterior muscle of the shank, arising by two heads from the femur and inserted on the tibio-fibula; it flexes the foot.", 1.04, 0.24);
+  lm("ext_cruris", "Extensor cruris brevis", shank, 0.02, 0.48, -38, 16, M2,
+    "Short deep extensor on the antero-lateral surface of the proximal shank, running from the femur to the tibio-fibula.", 1.0, 0.18);
+  lm("tib_post", "Tibialis posticus", shank, 0.08, 0.95, 112, 24, M2,
+    "Deep muscle on the postero-medial face of the shank, seen after the gastrocnemius is reflected; it extends and rotates the foot.", 1.0, 0.22);
+}
+
+/* ================================================= 3. visceral system */
+function buildVisceral() {
+  add({ id: "heart", name: "Heart", sys: ["visceral"], color: "#8f2f2b", rough: 0.5,
+    geo: [at(ellipsoid(0.62, 0.55, 0.78, 22), 0, -0.25, 1.45),
+          at(ellipsoid(0.34, 0.3, 0.34, 16), -0.38, 0.1, 1.95),
+          at(ellipsoid(0.34, 0.3, 0.34, 16), 0.38, 0.1, 1.95),
+          varTube([[0, 0.05, 2.0], [0, 0.25, 2.5], [0, 0.35, 2.9]], 0.16, 20, 10)],
+    anchor: [0, -0.3, 1.5],
+    note: "Three-chambered: two thin-walled auricles above and a single conical muscular ventricle below, with the truncus arteriosus leaving the ventricle ventrally and forking into the aortic arches." });
+
+  add({ id: "lungs", name: "Lungs (right & left)", sys: ["visceral"], color: "#cf8a84", mirror: true,
+    opacity: 0.92, geo: [at(ellipsoid(0.72, 0.62, 1.08, 20), 1.15, 0.3, 1.25)], anchor: [1.15, 0.35, 1.25],
+    note: "Paired thin-walled elastic sacs dorso-lateral to the heart. They are simple internally, ventilated by buccal pumping rather than by a diaphragm." });
+
+  add({ id: "liver_r", name: "Right lobe of liver", sys: ["visceral"], color: "#6e3a2f",
+    geo: [at(rot(ellipsoid(0.95, 0.55, 1.35, 22), 0, -0.12, 0), 1.05, -0.62, 0.95)], anchor: [1.2, -0.8, 0.95],
+    note: "The larger right lobe. The liver is the biggest organ in the body cavity and must be lifted to expose the stomach and heart." });
+  add({ id: "liver_l", name: "Left lobe of liver", sys: ["visceral"], color: "#7a4034",
+    geo: [at(rot(ellipsoid(0.85, 0.5, 1.3, 22), 0, 0.14, 0), -1.0, -0.62, 0.9)], anchor: [-1.2, -0.8, 0.9],
+    note: "Left lobe, often itself notched into two parts. Bile made here is stored in the gall bladder." });
+  add({ id: "isthmus", name: "Isthmus of liver", sys: ["visceral"], color: "#8a4a3b",
+    geo: [at(ellipsoid(0.55, 0.28, 0.35, 16), 0, -0.55, 1.35)], anchor: [0, -0.5, 1.4],
+    note: "Narrow bridge of liver tissue joining the right and left lobes across the midline, just behind the heart." });
+  add({ id: "gall", name: "Gall bladder", sys: ["visceral"], color: "#4e7d3a",
+    geo: [at(ellipsoid(0.27, 0.27, 0.3, 16), 0.3, -0.42, 0.95)], anchor: [0.35, -0.4, 0.95],
+    note: "Small green sac lodged between the lobes of the liver; it stores bile and is easily ruptured — cut around it." });
+
+  var fat = [];
+  [-1, 1].forEach(function (s) {
+    for (var i = 0; i < 5; i++) {
+      var x = s * (0.65 + i * 0.13), sp = 0.16 - i * 0.012;
+      fat.push(varTube([[x, 0.15, -1.75], [x + s * 0.18, 0.35, -1.0 + i * 0.12], [x + s * 0.3, 0.45, -0.25 + i * 0.2]],
+        function (u) { return sp * (1 - 0.35 * u); }, 20, 8));
+    }
+  });
+  add({ id: "fat", name: "Fat bodies (corpora adiposa)", sys: ["visceral", "uro"], color: "#e2c669",
+    geo: fat, anchor: [0.95, 0.4, -0.9],
+    note: "Finger-like yellow lobes attached to the anterior end of each gonad. They store the reserves used for hibernation and for gamete production in the breeding season." });
+
+  add({ id: "kidney", name: "Kidney (mesonephros)", sys: ["visceral", "uro"], color: "#7d3b39", mirror: true,
+    geo: [at(rot(ellipsoid(0.45, 0.35, 1.45, 18), 0, -0.05, 0), 0.85, 0.62, -2.15)], anchor: [0.85, 0.66, -2.15],
+    note: "Flat dark-red mesonephric kidney lying retroperitoneally against the dorsal body wall on either side of the vertebral column; it drains through the Wolffian duct." });
+
+  add({ id: "pancreas", name: "Pancreas", sys: ["visceral"], color: "#cba46f",
+    geo: [sheet([[0.15, -0.15, 0.55], [0.5, -0.2, 0.15], [0.75, -0.25, -0.2]],
+                [[0.5, 0.15, 0.6], [0.85, 0.1, 0.2], [1.05, 0.05, -0.15]], 16, 8, 0.05)],
+    anchor: [0.6, -0.1, 0.2],
+    note: "Irregular pale gland lying in the loop between the stomach and duodenum, in the mesentery; its secretion joins the bile duct." });
+
+  add({ id: "hp_duct", name: "Hepato-pancreatic duct", sys: ["visceral"], color: "#d6c58f",
+    geo: [varTube([[0.3, -0.42, 0.85], [0.45, -0.3, 0.5], [0.7, -0.25, 0.1], [0.9, -0.3, -0.2]], 0.075, 26, 8)],
+    anchor: [0.62, -0.3, 0.3],
+    note: "The common duct formed when the cystic duct from the gall bladder is joined by the hepatic and pancreatic ductules; it opens into the duodenum." });
+
+  add({ id: "stomach", name: "Stomach", sys: ["visceral"], color: "#c9a68c",
+    geo: [varTube([[0, -0.05, 2.15], [-0.35, -0.2, 1.5], [-0.75, -0.35, 0.75], [-0.7, -0.4, 0.05], [-0.25, -0.4, -0.45], [0.25, -0.4, -0.55]],
+      function (u) { return 0.22 + 0.34 * Math.sin(Math.PI * Math.min(u * 1.05, 1)); }, 46, 14)],
+    anchor: [-0.75, -0.45, 0.5],
+    note: "Curved whitish sac on the left, continuous with the oesophagus in front and narrowing at the pyloric end behind, where it turns right into the duodenum." });
+
+  add({ id: "spleen", name: "Spleen", sys: ["visceral"], color: "#7d2f36",
+    geo: [at(ellipsoid(0.24, 0.22, 0.24, 16), -0.15, 0.1, -1.15)], anchor: [-0.15, 0.12, -1.15],
+    note: "Small round dark-red body suspended in the mesentery near the intestine; a lymphoid organ, not part of the gut tube." });
+
+  add({ id: "mesentery", name: "Mesenteries", sys: ["visceral"], color: "#e8dcc6", opacity: 0.3,
+    geo: [sheet([[0, 0.5, 0.2], [0, 0.55, -1.1], [0, 0.5, -2.4]],
+                [[0.6, -0.55, 0.0], [-0.5, -0.7, -1.3], [0.4, -0.6, -2.6]], 24, 12, 0)],
+    anchor: [0.2, -0.1, -1.4], 
+    note: "Transparent double folds of peritoneum that sling the gut from the dorsal body wall and carry its blood vessels, nerves and the spleen." });
+
+  add({ id: "duodenum", name: "Duodenum", sys: ["visceral"], color: "#d8b892",
+    geo: [varTube([[0.3, -0.4, -0.55], [0.85, -0.35, -0.1], [1.05, -0.3, 0.5], [0.85, -0.25, 0.95]], 0.24, 34, 12)],
+    anchor: [1.0, -0.3, 0.45],
+    note: "The first limb of the small intestine: it runs forward on the right, parallel to the stomach, and receives the hepato-pancreatic duct." });
+
+  var coil = [];
+  for (var i = 0; i <= 42; i++) {
+    var t = i / 42, a = t * Math.PI * 6.2;
+    coil.push([Math.cos(a) * (1.05 - 0.35 * t) * 0.95, -0.55 + 0.25 * Math.sin(a * 1.3), 0.6 - 2.6 * t]);
+  }
+  add({ id: "ileum", name: "Ileum (small intestine)", sys: ["visceral"], color: "#d2b48c",
+    geo: [varTube(coil, function (u) { return 0.2 - 0.03 * u; }, 130, 12)], anchor: [0.9, -0.6, -1.1],
+    note: "Long coiled small intestine held in place by the mesentery. Uncoil it gently to see that it is a single continuous tube from duodenum to rectum." });
+
+  add({ id: "rectum", name: "Rectum (large intestine)", sys: ["visceral", "uro"], color: "#c39a78",
+    geo: [varTube([[0.1, -0.6, -2.5], [0, -0.7, -3.1], [0, -0.75, -3.7]],
+      function (u) { return 0.42 - 0.12 * u; }, 26, 14)], anchor: [0, -0.8, -3.1],
+    note: "Short wide terminal part of the gut in the midline, where water is reabsorbed before the faeces pass into the cloaca." });
+
+  add({ id: "cloaca", name: "Cloaca", sys: ["visceral", "uro"], color: "#ab7a5d",
+    geo: [at(ellipsoid(0.42, 0.4, 0.45, 18), 0, -0.78, -4.1)], anchor: [0, -0.8, -4.15],
+    note: "Common chamber receiving the rectum, the two urinogenital ducts and the urinary bladder — the defining feature of the amphibian hind end." });
+
+  add({ id: "bladder", name: "Urinary bladder", sys: ["visceral", "uro"], color: "#c6aed2", opacity: 0.8,
+    geo: [at(ellipsoid(0.55, 0.45, 0.6, 18), 0.48, -1.15, -3.55),
+          at(ellipsoid(0.55, 0.45, 0.6, 18), -0.48, -1.15, -3.55),
+          at(ellipsoid(0.3, 0.25, 0.3, 14), 0, -1.0, -3.95)],
+    anchor: [0, -1.25, -3.6],
+    note: "Thin bilobed sac opening into the ventral wall of the cloaca. Urine enters the cloaca from the ducts first and is then stored here, so water can be reclaimed." });
+
+  add({ id: "cloacal_op", name: "Cloacal aperture", sys: ["visceral", "uro"], color: "#8e5f49",
+    geo: [at(rot(new THREE.TorusGeometry(0.22, 0.09, 10, 20), Math.PI / 2, 0, 0), 0, -0.82, -4.45)],
+    dir: [0, -0.4, -1], anchor: [0, -0.82, -4.45],
+    note: "The single external opening of the cloaca, at the posterior end of the body between the thighs." });
+}
+
+/* ====================================== 4. urinogenital — female */
+function buildFemale() {
+  // ovary: lobed sac packed with ova
+  var lobes = [], ova = [];
+  for (var i = 0; i < 9; i++) {
+    var z = -0.55 - i * 0.28, x = 1.05 + 0.22 * Math.sin(i * 1.7), y = 0.05 + 0.3 * Math.cos(i * 1.1);
+    lobes.push(at(ellipsoid(0.42 + 0.06 * Math.sin(i), 0.36, 0.34, 14), x, y, z));
+  }
+  add({ id: "ovary", name: "Ovary", sys: ["uro"], sex: "f", color: "#6d6a58", mirror: true,
+    geo: lobes, anchor: [1.2, 0.1, -1.4], opacity: 0.55,
+    note: "Paired lobed sac suspended from the dorsal body wall by a mesovarium. In the breeding season it swells until it fills much of the abdomen." });
+
+  for (var j = 0; j < 26; j++) {
+    var a = j * 2.3, zz = -0.5 - (j % 9) * 0.28;
+    ova.push(at(ellipsoid(0.13, 0.13, 0.13, 10),
+      1.05 + 0.3 * Math.cos(a), 0.05 + 0.28 * Math.sin(a), zz + 0.1 * Math.sin(a * 2)));
+  }
+  add({ id: "ova", name: "Ova (eggs)", sys: ["uro"], sex: "f", color: "#2f2a22", mirror: true,
+    geo: ova, anchor: [1.35, -0.2, -1.0],
+    note: "Individual eggs, each black at the animal pole and cream at the vegetal pole, visible through the ovarian wall. They are shed into the coelom, not into a duct." });
+
+  var od = [];
+  [1].forEach(function () {
+    var pts = [];
+    for (var k = 0; k <= 30; k++) {
+      var t = k / 30, z = 1.35 - t * 4.3;
+      pts.push([1.62 + 0.3 * Math.sin(k * 1.9), 0.22 + 0.34 * Math.cos(k * 1.9), z]);
+    }
+    od.push(varTube(pts, function (u) { return 0.16 + 0.05 * Math.sin(u * 9); }, 110, 10));
+  });
+  add({ id: "oviduct", name: "Oviduct (oval duct)", sys: ["uro"], sex: "f", color: "#e6d8ba", mirror: true,
+    geo: od, anchor: [1.75, 0.4, 0.2],
+    note: "Long white convoluted tube opening in front by a ciliated funnel (ostium) near the base of the lung. Its glandular wall lays down the jelly coats around each egg as it passes down." });
+
+  add({ id: "ovisac", name: "Ovisac (uterus)", sys: ["uro"], sex: "f", color: "#ddc9a6", mirror: true,
+    geo: [at(rot(ellipsoid(0.42, 0.38, 0.72, 16), 0, -0.2, 0), 0.72, -0.1, -3.25)], anchor: [0.8, -0.15, -3.3],
+    note: "Thin-walled dilated hind end of each oviduct, where the eggs collect before spawning. It opens separately into the cloaca." });
+
+  add({ id: "adrenal_f", name: "Adrenal gland", sys: ["uro"], sex: "f", color: "#e6b23a", mirror: true,
+    geo: [at(rot(ellipsoid(0.16, 0.08, 1.15, 14), 0, -0.05, 0), 0.85, 0.32, -2.15)], anchor: [0.85, 0.3, -2.2],
+    note: "Narrow yellow-orange strip on the ventral face of each kidney, present in both sexes; it is endocrine tissue and not part of the urinary pathway." });
+
+  add({ id: "wd_f", name: "Wolffian duct (ureter)", sys: ["uro"], sex: "f", color: "#c9b184", mirror: true,
+    geo: [varTube([[1.3, 0.55, -1.3], [1.25, 0.5, -2.4], [1.0, 0.3, -3.2], [0.5, -0.1, -3.9]], 0.1, 40, 8)],
+    anchor: [1.25, 0.5, -2.3],
+    note: "In the female this duct is urinary only: it collects urine along the outer border of the kidney and carries it back to the cloaca." });
+}
+
+/* ======================================== 5. urinogenital — male */
+function buildMale() {
+  add({ id: "testis", name: "Testis", sys: ["uro"], sex: "m", color: "#e6d37e", mirror: true,
+    geo: [at(rot(ellipsoid(0.34, 0.3, 0.62, 18), 0, -0.08, 0), 0.72, 0.3, -1.65)], anchor: [0.72, 0.28, -1.65],
+    note: "Pale yellow ovoid body attached by a mesorchium to the ventral surface of the kidney, near its anterior end. Sperm leave it medially." });
+
+  var vas = [];
+  for (var i = 0; i < 6; i++) {
+    var z = -1.2 - i * 0.2;
+    vas.push(varTube([[0.62, 0.32, z], [0.78, 0.5, z - 0.08], [0.9, 0.6, z - 0.15]], 0.045, 14, 7));
+  }
+  add({ id: "vasa_eff", name: "Vasa efferentia", sys: ["uro"], sex: "m", color: "#efe6c8", mirror: true,
+    geo: vas, anchor: [0.8, 0.52, -1.35],
+    note: "Fine transverse tubules that carry sperm from the testis into the anterior part of the kidney, where they join the Bidder's canal and the kidney tubules." });
+
+  add({ id: "adrenal", name: "Adrenal gland", sys: ["uro"], sex: "m", color: "#e6b23a", mirror: true,
+    geo: [at(rot(ellipsoid(0.16, 0.08, 1.15, 14), 0, -0.05, 0), 0.85, 0.32, -2.15)], anchor: [0.85, 0.3, -2.2],
+    note: "Narrow yellow-orange strip on the ventral face of each kidney — endocrine tissue, not part of the urinary pathway." });
+
+  add({ id: "ves_sem", name: "Vesicula seminalis", sys: ["uro"], sex: "m", color: "#d9c07e", mirror: true,
+    geo: [at(rot(ellipsoid(0.26, 0.24, 0.5, 16), 0, -0.12, 0), 0.95, 0.25, -3.15)], anchor: [1.0, 0.25, -3.2],
+    note: "Swollen posterior part of the urinogenital duct that stores sperm before the breeding season; it is conspicuous only in mature males." });
+
+  add({ id: "wd_m", name: "Urinogenital duct (Wolffian duct)", sys: ["uro"], sex: "m", color: "#c9b184", mirror: true,
+    geo: [varTube([[1.28, 0.55, -1.25], [1.22, 0.5, -2.4], [1.0, 0.3, -3.1], [0.5, -0.1, -3.9]], 0.11, 40, 8)],
+    anchor: [1.22, 0.52, -2.3],
+    note: "In the male this single duct carries both urine and sperm from the kidney to the cloaca — hence the name urinogenital duct." });
+}
+
+/* ================================================ 6. nervous system */
+function buildNervous() {
+  var NER = "#f0e5b8", GANG = "#d9c98a", BONE = "#ded6c2";
+
+  add({ id: "cord", name: "Spinal cord & brain outline", sys: ["nervous"], color: "#f5edd6", label: false,
+    geo: [varTube([[0, 1.05, 3.9], [0, 1.02, 2.6], [0, 0.98, 1.0], [0, 0.95, -0.6], [0, 0.9, -2.2], [0, 0.85, -3.3]],
+      function (u) { return 0.2 - 0.09 * u; }, 50, 12),
+      at(ellipsoid(0.42, 0.3, 0.9, 16), 0, 1.0, 4.4)],
+    anchor: [0, 1.05, 2.0],
+    note: "The central nervous axis lying inside the neural canal. Ten pairs of spinal nerves leave it; there are no separate thoracic and lumbar regions." });
+
+  var nerveZ = [2.45, 1.85, 1.25, 0.6, -0.05, -0.7, -1.4, -2.05, -2.7, -3.3];
+  var names = [
+    ["n1", "First spinal nerve (hypoglossal)", "Leaves between the skull and the first vertebra and runs forward to supply the muscles of the tongue and buccal floor."],
+    ["n2", "Second spinal nerve (brachial)", "The main nerve of the forelimb; with part of the third it forms the brachial plexus."],
+    ["n3", "Third spinal nerve", "Joins the second in the brachial plexus and also supplies the body wall of the shoulder region."],
+    ["n4", "Fourth spinal nerve", "A segmental nerve to the skin and muscles of the anterior trunk wall."],
+    ["n5", "Fifth spinal nerve", "Segmental nerve of the mid trunk; it runs obliquely backwards in the body wall."],
+    ["n6", "Sixth spinal nerve", "Segmental nerve of the mid trunk, slightly larger as the sciatic region is approached."],
+    ["n7", "Seventh spinal nerve", "The first of the three roots that unite to form the sciatic plexus."],
+    ["n8", "Eighth spinal nerve", "The largest root of the sciatic plexus and the main contributor to the sciatic nerve."],
+    ["n9", "Ninth spinal nerve", "The last root of the sciatic plexus, joining the eighth close to the urostyle."],
+    ["n10", "Tenth spinal nerve (coccygeal)", "A slender nerve running back alongside the urostyle to supply the cloacal region."]
+  ];
+  nerveZ.forEach(function (z, i) {
+    var lateral = (i === 1 || i === 2) ? 1.75 : (i >= 6 && i <= 8) ? 1.35 : 2.0;
+    var end;
+    if (i === 0) end = [[0.22, 1.0, z], [0.9, 0.55, z + 0.9], [1.25, 0.05, z + 1.6]];
+    else if (i === 1 || i === 2) end = [[0.22, 0.98, z], [1.0, 0.75, z + 0.1], [1.6, 0.55, 1.55]];
+    else if (i >= 6 && i <= 8) end = [[0.2, 0.9, z], [0.8, 0.6, z - 0.35], [1.25, 0.4, -3.0]];
+    else if (i === 9) end = [[0.18, 0.85, z], [0.45, 0.72, -4.0], [0.55, 0.6, -4.9]];
+    else end = [[0.2, 0.95, z], [1.2, 0.35, z - 0.45], [2.2, -0.45, z - 1.05]];
+    add({ id: names[i][0], name: names[i][1], sys: ["nervous"], color: NER, mirror: true,
+      geo: [varTube(end, function (u) { return 0.085 - 0.03 * u; }, 26, 8)],
+      anchor: end[2], note: names[i][2] });
+  });
+
+  add({ id: "brach_plexus", name: "Brachial plexus", sys: ["nervous"], color: "#e8d9a0", mirror: true,
+    geo: [at(ellipsoid(0.2, 0.14, 0.3, 14), 1.6, 0.55, 1.55),
+          varTube([[1.6, 0.55, 1.55], [2.3, 0.1, 1.9], [3.2, -0.5, 2.3]], 0.1, 24, 8)],
+    anchor: [1.75, 0.5, 1.6],
+    note: "The meeting of the second and third spinal nerves in front of the shoulder; from it the brachial nerve runs into the forelimb." });
+
+  add({ id: "sacral_plexus", name: "Sacral (sciatic) plexus", sys: ["nervous"], color: "#e8d9a0", mirror: true,
+    geo: [at(ellipsoid(0.22, 0.15, 0.34, 14), 1.28, 0.4, -3.0)], anchor: [1.3, 0.42, -3.0],
+    note: "The union of the seventh, eighth and ninth spinal nerves beside the urostyle, from which the sciatic nerve arises." });
+
+  add({ id: "sciatic", name: "Sciatic nerve", sys: ["nervous"], color: "#f3ebc6", mirror: true,
+    geo: [varTube([[1.3, 0.4, -3.05], [1.9, 0.0, -3.9], [2.7, -0.4, -5.0], [3.3, -0.7, -6.1], [3.4, -0.8, -7.6], [3.45, -0.85, -9.0]],
+      function (u) { return 0.14 - 0.06 * u; }, 60, 10)], anchor: [2.9, -0.5, -5.4],
+    note: "The largest nerve in the body, running down the thigh between the gracilis and the adductors. It is the nerve of the classic nerve–muscle preparation." });
+
+  var chain = [], gangs = [], rami = [];
+  chain.push(varTube([[0.62, 0.72, 2.75], [0.66, 0.68, 1.0], [0.68, 0.64, -0.8], [0.6, 0.6, -2.6], [0.45, 0.58, -3.3]], 0.06, 50, 8));
+  nerveZ.slice(0, 9).forEach(function (z) {
+    gangs.push(at(ellipsoid(0.11, 0.1, 0.13, 10), 0.66, 0.68, z));
+    rami.push(varTube([[0.2, 0.95, z], [0.45, 0.8, z], [0.66, 0.7, z]], 0.045, 12, 7));
+  });
+  add({ id: "symp_trunk", name: "Sympathetic nerve trunk", sys: ["nervous"], color: "#e4d6a2", mirror: true,
+    geo: chain, anchor: [0.68, 0.7, 0.4],
+    note: "Paired longitudinal cord of the autonomic system running beside the vertebral column, dorsal to the kidneys and ventral to the spinal nerves." });
+  add({ id: "symp_gang", name: "Sympathetic ganglia", sys: ["nervous"], color: GANG, mirror: true,
+    geo: gangs, anchor: [0.7, 0.72, -0.4],
+    note: "Swellings on the sympathetic trunk, one for each segment, containing the cell bodies of the postganglionic autonomic neurons." });
+  add({ id: "ramus", name: "Rami communicantes", sys: ["nervous"], color: "#efe4c0", mirror: true,
+    geo: rami, anchor: [0.44, 0.82, -0.05],
+    note: "Short connecting branches between each spinal nerve and its sympathetic ganglion — the bridge between the somatic and autonomic systems." });
+
+  add({ id: "urostyle", name: "Urostyle", sys: ["nervous"], color: BONE,
+    geo: [varTube([[0, 0.78, -3.2], [0, 0.72, -4.4], [0, 0.66, -5.6]],
+      function (u) { return 0.26 - 0.16 * u; }, 26, 10)], anchor: [0, 0.74, -4.4],
+    note: "Rod-shaped bone formed by fusion of the posterior vertebrae, running back inside the pelvis. The sacral plexus and the tenth nerve lie against it." });
+}
+
+/* ========================================================= 7. skull */
+function buildSkull() {
+  var A = "#e4dcc8", B = "#d6ccb4", C = "#cdc2a6", D = "#e9e3d2";
+  var Zc = 3.35, Yc = 0.15;     // skull centre inside the head
+  function S(id, name, color, geo, anchor, note, mirror) {
+    add({ id: id, name: name, sys: ["skull"], color: color, geo: geo, anchor: anchor, note: note, mirror: mirror });
+  }
+
+  // braincase + otic region as a shallow dome
+  S("frontal", "Fronto-parietal (frontal + parietal)", A,
+    [paramGeo(function (u, v) {
+      var z = Zc + 1.05 - u * 2.0, x = 0.12 + v * 0.95;
+      var y = Yc + 0.55 - 0.22 * v * v - 0.12 * Math.pow((z - Zc) / 1.2, 2);
+      return [x, y, z];
+    }, 14, 10)], [0.55, 0.75, 3.4],
+    "Large paired dorsal roofing bone of the braincase, covering the brain between the orbits; it is a single fused fronto-parietal in anurans.", true);
+
+  S("nasal", "Nasal", D,
+    [paramGeo(function (u, v) {
+      var z = Zc + 2.1 - u * 1.0, x = 0.14 + v * 1.15;
+      var y = Yc + 0.5 - 0.25 * v * v + 0.05 * u;
+      return [x, y, z];
+    }, 12, 10)], [0.6, 0.6, 4.9],
+    "Paired triangular bone roofing the nasal capsule in front of the fronto-parietal; it shields the olfactory region.", true);
+
+  S("premaxilla", "Premaxilla", B,
+    [at(ellipsoid(0.34, 0.26, 0.2, 14), 0.38, Yc - 0.25, Zc + 2.55)], [0.38, -0.1, 5.9],
+    "Small paired bone at the very tip of the upper jaw, bearing minute teeth in most anurans; in Bufo the jaw is toothless.", true);
+
+  S("septomax", "Septomaxillary", C,
+    [at(ellipsoid(0.16, 0.12, 0.22, 12), 0.78, Yc - 0.05, Zc + 2.0)], [0.82, 0.1, 5.35],
+    "Tiny bone buried in the wall of the nasal capsule behind the premaxilla; it is exposed only when the nasal region is cleaned.", true);
+
+  S("maxilla", "Maxilla", B,
+    [varTube([[0.62, Yc - 0.3, Zc + 2.45], [1.35, Yc - 0.32, Zc + 1.5], [1.82, Yc - 0.3, Zc + 0.2], [1.95, Yc - 0.28, Zc - 0.75]],
+      function (u) { return 0.2 - 0.05 * u; }, 34, 8)], [1.9, -0.15, 3.2],
+    "Long bone forming most of the margin of the upper jaw, running back from the premaxilla to meet the quadratojugal.", true);
+
+  S("orbit", "Orbit", "#9aa89c",
+    [(function () { var g = new THREE.TorusGeometry(0.78, 0.09, 10, 26); g.rotateX(Math.PI / 2); g.rotateZ(0.18); return at(g, 1.12, Yc + 0.35, Zc + 0.55); })()],
+    [1.2, 0.5, 3.9],
+    "The large circular opening that houses the eyeball, bounded by the fronto-parietal, maxilla and squamosal. Its size reflects how much of the skull is eye.", true);
+
+  S("quad_jug", "Quadrato-jugal", C,
+    [varTube([[1.95, Yc - 0.3, Zc - 0.7], [1.92, Yc - 0.3, Zc - 1.25]], 0.15, 12, 8)], [1.95, -0.2, 2.35],
+    "Short slender bone linking the hind end of the maxilla to the quadrate, completing the lower border of the cheek.", true);
+
+  S("quadrate", "Quadrate", B,
+    [at(ellipsoid(0.24, 0.26, 0.26, 14), 1.82, Yc - 0.28, Zc - 1.5)], [1.85, -0.2, 2.0],
+    "Small cartilage-bone at the hind angle of the jaw that carries the articular surface for the lower jaw — the jaw joint of all non-mammals.", true);
+
+  S("squamosal", "Squamosal", A,
+    [paramGeo(function (u, v) {
+      var z = Zc - 0.6 - u * 0.95, x = 1.25 + v * 0.62;
+      var y = Yc + 0.4 - 0.85 * v;
+      return [x, y, z];
+    }, 10, 10)], [1.6, 0.15, 2.5],
+    "T-shaped bone of the cheek, its upper arm resting against the braincase and its lower arm bracing the quadrate.", true);
+
+  S("prootic", "Prootic", D,
+    [at(ellipsoid(0.42, 0.34, 0.45, 16), 0.78, Yc + 0.32, Zc - 1.1)], [0.8, 0.5, 2.3],
+    "Bone of the otic capsule enclosing the inner ear, lying between the fronto-parietal and the exoccipital.", true);
+
+  S("exoccipital", "Exoccipital", B,
+    [at(ellipsoid(0.42, 0.42, 0.3, 16), 0.48, Yc + 0.25, Zc - 1.75)], [0.5, 0.4, 1.65],
+    "Paired bone forming the sides and floor of the hind end of the braincase; it carries the occipital condyle.", true);
+
+  S("foramen", "Foramen magnum", "#4a4f46",
+    [(function () { var g = new THREE.TorusGeometry(0.33, 0.07, 10, 22); g.rotateY(0); return at(g, 0, Yc + 0.3, Zc - 1.95); })()],
+    [0, 0.48, 1.35],
+    "The large opening in the hind wall of the skull through which the spinal cord leaves the brain.", false);
+
+  S("condyle", "Occipital condyles", C,
+    [at(ellipsoid(0.2, 0.2, 0.16, 12), 0.42, Yc + 0.1, Zc - 2.0)], [0.45, 0.22, 1.3],
+    "Two rounded knobs beside the foramen magnum that articulate with the first vertebra — amphibians have two, reptiles one.", true);
+}
+
+/* ==================================================== build everything */
+buildBody();
+buildMuscular();
+buildVisceral();
+buildFemale();
+buildMale();
+buildNervous();
+buildSkull();
+
+/* ============================================================== state */
+var state = {
+  sex: "f",
+  active: { body: true, muscular: true, visceral: false, uro: false, nervous: false, skull: false },
+  hidden: {},
+  isolate: null,
+  selected: null,
+  hover: null,
+  labels: window.innerWidth > 860,
+  explode: 0,
+  skin: 0.2,
+  quiz: false, quizTarget: null, quizRight: 0, quizTotal: 0
+};
+
+function sexOK(s) { return !s.sex || s.sex === state.sex; }
+function visibleNow(s) {
+  if (!sexOK(s)) return false;
+  if (state.hidden[s.id]) return false;
+  if (state.isolate) return s.id === state.isolate || s.id === "bodywall" && state.active.body;
+  return s.sys.some(function (k) { return state.active[k]; });
+}
+
+/* ============================================================== labels */
+var labelLayer = document.getElementById("labels");
+var leaders = document.getElementById("leaders");
+var labelEls = {};
+STRUCTS.forEach(function (s) {
+  if (!s.label) return;
+  var el = document.createElement("button");
+  el.className = "lbl"; el.textContent = s.name; el.dataset.id = s.id;
+  el.addEventListener("click", function (e) { e.stopPropagation(); select(s.id, false); });
+  labelLayer.appendChild(el);
+  var line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("stroke", "rgba(201,162,39,.55)");
+  line.setAttribute("stroke-width", "1");
+  leaders.appendChild(line);
+  var pin = document.createElement("i"); pin.className = "pin"; labelLayer.appendChild(pin);
+  labelEls[s.id] = { el: el, line: line, pin: pin };
+});
+
+var tmpV = new THREE.Vector3();
+function updateLabels(w, h) {
+  var items = [];
+  STRUCTS.forEach(function (s) {
+    var L = labelEls[s.id]; if (!L) return;
+    var show = s.label && visibleNow(s) && !state.quiz &&
+      (state.labels || state.selected === s.id || state.hover === s.id);
+    if (!show) { L.el.style.display = "none"; L.line.style.display = "none"; L.pin.style.display = "none"; return; }
+    tmpV.copy(s.anchor).add(s.group.position).project(camera);
+    if (tmpV.z > 1 || tmpV.z < -1) { L.el.style.display = "none"; L.line.style.display = "none"; L.pin.style.display = "none"; return; }
+    items.push({ s: s, L: L, x: (tmpV.x * 0.5 + 0.5) * w, y: (-tmpV.y * 0.5 + 0.5) * h });
+  });
+  var left = items.filter(function (i) { return i.x < w * 0.5; }).sort(function (a, b) { return a.y - b.y; });
+  var right = items.filter(function (i) { return i.x >= w * 0.5; }).sort(function (a, b) { return a.y - b.y; });
+  function spread(col) {
+    var min = 21, last = -1e9;
+    col.forEach(function (i) { i.ly = Math.max(i.y, last + min); last = i.ly; });
+    var over = last - (h - 14);
+    if (over > 0) col.forEach(function (i) { i.ly -= over; });
+  }
+  spread(left); spread(right);
+  left.concat(right).forEach(function (i) {
+    var isLeft = i.x < w * 0.5;
+    var lx = isLeft ? Math.max(70, i.x - 34) : Math.min(w - 8, i.x + 34);
+    var on = state.selected === i.s.id || state.hover === i.s.id;
+    i.L.el.style.display = "block";
+    i.L.el.style.left = lx + "px";
+    i.L.el.style.top = i.ly + "px";
+    i.L.el.classList.toggle("right", isLeft);
+    i.L.el.classList.toggle("on", on);
+    i.L.el.style.zIndex = on ? 5 : 2;
+    i.L.pin.style.display = "block";
+    i.L.pin.style.left = i.x + "px"; i.L.pin.style.top = i.y + "px";
+    i.L.pin.style.background = on ? "var(--focus)" : i.s.color;
+    i.L.line.style.display = "block";
+    i.L.line.setAttribute("x1", i.x); i.L.line.setAttribute("y1", i.y);
+    i.L.line.setAttribute("x2", lx + (isLeft ? -2 : 2)); i.L.line.setAttribute("y2", i.ly);
+    i.L.line.setAttribute("stroke", on ? "rgba(111,211,177,.9)" : "rgba(201,162,39,.45)");
+  });
+}
+
+/* ========================================================== appearance */
+function refresh(skipList) {
+  STRUCTS.forEach(function (s) {
+    var vis = visibleNow(s);
+    s.group.visible = vis;
+    s.group.position.copy(s.dir).multiplyScalar(state.explode * (s.id === "bodywall" ? 0 : 3.6));
+    var op = s.id === "bodywall" ? state.skin : s.baseOpacity;
+    var dim = state.selected && state.selected !== s.id && s.id !== "bodywall";
+    s.material.opacity = dim ? op * 0.34 : op;
+    s.material.depthWrite = s.material.opacity > 0.85;
+    var hot = state.selected === s.id || state.hover === s.id;
+    s.material.emissive.setStyle(hot ? "#6fd3b1" : s.color);
+    s.material.emissive.multiplyScalar(hot ? 0.45 : 0.06);
+  });
+  if (!skipList) buildLists();
+}
+
+/* =============================================================== lists */
+var sysList = document.getElementById("sysList");
+SYSTEMS.forEach(function (sy) {
+  var b = document.createElement("button");
+  b.innerHTML = '<span class="sw" style="background:' + sy.color + ';color:' + sy.color + '"></span><span class="nm"></span><span class="ct"></span>';
+  b.querySelector(".nm").textContent = sy.name;
+  b.addEventListener("click", function () {
+    state.active[sy.id] = !state.active[sy.id];
+    state.isolate = null;
+    if (state.selected && !visibleNow(byId[state.selected])) state.selected = null;
+    syncSys(); refresh();
+  });
+  b.dataset.sys = sy.id;
+  sysList.appendChild(b);
+});
+function syncSys() {
+  Array.prototype.forEach.call(sysList.children, function (b) {
+    var id = b.dataset.sys;
+    b.setAttribute("aria-pressed", state.active[id] ? "true" : "false");
+    var n = STRUCTS.filter(function (s) { return s.sys.indexOf(id) >= 0 && sexOK(s) && s.label; }).length;
+    b.querySelector(".ct").textContent = n ? n : "";
+    if (id === "uro") b.querySelector(".nm").textContent = "Urinogenital system (" + (state.sex === "f" ? "female" : "male") + ")";
+  });
+}
+
+var structList = document.getElementById("structList");
+var listHint = document.getElementById("listHint");
+function buildLists() {
+  var q = (document.getElementById("search").value || "").toLowerCase().trim();
+  structList.innerHTML = "";
+  var shown = 0;
+  SYSTEMS.forEach(function (sy) {
+    var rows = STRUCTS.filter(function (s) {
+      return s.label && s.sys.indexOf(sy.id) >= 0 && sexOK(s) &&
+        (q ? s.name.toLowerCase().indexOf(q) >= 0 : state.active[sy.id]);
+    });
+    if (!rows.length) return;
+    var h = document.createElement("div");
+    h.className = "sublabel"; h.style.margin = "9px 0 3px"; h.textContent = sy.name;
+    structList.appendChild(h);
+    rows.forEach(function (s) {
+      shown++;
+      var b = document.createElement("button");
+      b.className = "item" + (state.hidden[s.id] ? " off" : "");
+      b.setAttribute("aria-current", state.selected === s.id ? "true" : "false");
+      b.innerHTML = '<span class="dot"></span><span class="t"></span><span class="hide">' + (state.hidden[s.id] ? "show" : "hide") + '</span>';
+      b.querySelector(".dot").style.background = s.color;
+      b.querySelector(".t").textContent = s.name;
+      b.addEventListener("click", function (e) {
+        if (e.target.classList.contains("hide")) {
+          state.hidden[s.id] = !state.hidden[s.id]; refresh(); return;
+        }
+        select(s.id, true);
+        if (window.innerWidth <= 860) side.classList.remove("open");
+      });
+      b.addEventListener("mouseenter", function () { state.hover = s.id; refresh(true); });
+      b.addEventListener("mouseleave", function () { state.hover = null; refresh(true); });
+      structList.appendChild(b);
+    });
+  });
+  listHint.textContent = shown ? "Tap a name to fly to it; tap “hide” to strip it away." :
+    (q ? "No structure matches that spelling." : "Turn on a layer above to list its structures.");
+}
+
+/* ============================================================ selection */
+var info = document.getElementById("info");
+function select(id, fly) {
+  var s = byId[id]; if (!s) return;
+  if (state.quiz) { answerQuiz(id); return; }
+  state.selected = id;
+  document.getElementById("infoName").textContent = s.name;
+  document.getElementById("infoTag").textContent =
+    SYSTEMS.filter(function (y) { return s.sys.indexOf(y.id) >= 0; }).map(function (y) { return y.name; }).join(" · ");
+  document.getElementById("infoText").textContent = s.note;
+  info.hidden = false;
+  if (fly) flyTo(s);
+  refresh();
+}
+function clearSelection() { state.selected = null; state.isolate = null; info.hidden = true; refresh(); }
+function flyTo(s) {
+  ctl.tTarget.copy(s.anchor).add(s.group.position);
+  ctl.tDist = Math.max(4.5, Math.min(ctl.tDist, 10));
+}
+document.getElementById("infoClose").addEventListener("click", clearSelection);
+document.getElementById("focusBtn").addEventListener("click", function () {
+  if (state.selected) flyTo(byId[state.selected]);
+});
+document.getElementById("isolateBtn").addEventListener("click", function () {
+  state.isolate = state.isolate ? null : state.selected;
+  document.getElementById("isolateBtn").textContent = state.isolate ? "Show layer" : "Isolate";
+  refresh();
+});
+
+/* ============================================================== picking */
+var ray = new THREE.Raycaster(), pt = new THREE.Vector2();
+canvas.addEventListener("pointerup", function (e) {
+  if (moved > 8 || Date.now() - downAt > 600) return;
+  var r = canvas.getBoundingClientRect();
+  pt.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  pt.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+  ray.setFromCamera(pt, camera);
+  var hits = ray.intersectObjects(pickables.filter(function (m) {
+    var s = byId[m.userData.id];
+    return s && visibleNow(s) && (s.id !== "bodywall" || state.skin > 0.55);
+  }), false);
+  if (hits.length) select(hits[0].object.userData.id, false);
+  else if (!state.quiz) clearSelection();
+});
+canvas.addEventListener("pointermove", function (e) {
+  if (Object.keys(ptrs).length) return;
+  var r = canvas.getBoundingClientRect();
+  pt.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+  pt.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+  ray.setFromCamera(pt, camera);
+  var hits = ray.intersectObjects(pickables.filter(function (m) {
+    var s = byId[m.userData.id];
+    return s && visibleNow(s) && s.id !== "bodywall";
+  }), false);
+  var id = hits.length ? hits[0].object.userData.id : null;
+  if (id !== state.hover) { state.hover = id; canvas.style.cursor = id ? "pointer" : "grab"; refresh(true); }
+});
+
+/* ============================================================== controls */
+var side = document.getElementById("side");
+document.getElementById("menuBtn").addEventListener("click", function () { side.classList.toggle("open"); });
+document.getElementById("themeBtn").addEventListener("click", function () {
+  var lite = document.documentElement.getAttribute("data-theme") === "light";
+  document.documentElement.setAttribute("data-theme", lite ? "dark" : "light");
+  scene.background = new THREE.Color(lite ? 0x0e1512 : 0xeceae1);
+});
+function setSex(sx) {
+  state.sex = sx;
+  document.getElementById("sexF").setAttribute("aria-pressed", sx === "f" ? "true" : "false");
+  document.getElementById("sexM").setAttribute("aria-pressed", sx === "m" ? "true" : "false");
+  if (state.selected && !sexOK(byId[state.selected])) clearSelection();
+  syncSys(); refresh();
+}
+document.getElementById("sexF").addEventListener("click", function () { setSex("f"); });
+document.getElementById("sexM").addEventListener("click", function () { setSex("m"); });
+
+var ex = document.getElementById("explode");
+ex.addEventListener("input", function () {
+  state.explode = ex.value / 100;
+  document.getElementById("explodeVal").textContent = ex.value + "%";
+  refresh(true);
+});
+var sk = document.getElementById("skin");
+sk.addEventListener("input", function () {
+  state.skin = 1 - sk.value / 100;
+  document.getElementById("skinVal").textContent = sk.value + "%";
+  refresh(true);
+});
+document.getElementById("search").addEventListener("input", buildLists);
+
+var views = {
+  ventral: { th: 0, ph: 2.95, d: 15, t: [0, -0.2, -0.8] },
+  dorsal: { th: Math.PI, ph: 0.2, d: 15, t: [0, 0.2, -0.8] },
+  lateral: { th: Math.PI / 2, ph: 1.55, d: 16.5, t: [0, -0.2, -1.0] },
+  head: { th: Math.PI, ph: 0.75, d: 7.5, t: [0, 0.2, 3.6] }
+};
+Array.prototype.forEach.call(document.querySelectorAll("[data-view]"), function (b) {
+  b.addEventListener("click", function () {
+    var v = views[b.dataset.view];
+    ctl.tTheta = v.th; ctl.tPhi = v.ph; ctl.tDist = v.d;
+    ctl.tTarget.set(v.t[0], v.t[1], v.t[2]);
+    if (b.dataset.view === "head" && !state.active.skull) {
+      state.active.skull = true; syncSys(); refresh();
+    }
+  });
+});
+
+var labelBtn = document.getElementById("labelBtn");
+labelBtn.setAttribute("aria-pressed", state.labels ? "true" : "false");
+labelBtn.addEventListener("click", function () {
+  state.labels = !state.labels;
+  labelBtn.setAttribute("aria-pressed", state.labels ? "true" : "false");
+});
+
+/* =========================================================== identify mode */
+var quizBox = document.getElementById("quiz");
+function quizPool() {
+  return STRUCTS.filter(function (s) { return s.label && visibleNow(s); });
+}
+function nextQuiz() {
+  var pool = quizPool();
+  if (!pool.length) { state.quizTarget = null; document.getElementById("quizTarget").textContent = "— turn on a layer first"; return; }
+  state.quizTarget = pool[Math.floor(Math.random() * pool.length)].id;
+  document.getElementById("quizTarget").textContent = byId[state.quizTarget].name;
+}
+function answerQuiz(id) {
+  if (!state.quizTarget) return;
+  var fb = document.getElementById("quizFb");
+  state.quizTotal++;
+  if (id === state.quizTarget) {
+    state.quizRight++; fb.textContent = "Correct."; fb.className = "fb ok";
+    setTimeout(nextQuiz, 700);
+  } else {
+    fb.textContent = "That is the " + byId[id].name + ". Try again.";
+    fb.className = "fb no";
+  }
+  document.getElementById("quizScore").textContent = state.quizRight + " of " + state.quizTotal + " correct";
+}
+document.getElementById("quizBtn").addEventListener("click", function () {
+  state.quiz = !state.quiz;
+  this.setAttribute("aria-pressed", state.quiz ? "true" : "false");
+  quizBox.hidden = !state.quiz;
+  info.hidden = true; state.selected = null;
+  if (state.quiz) {
+    state.quizRight = 0; state.quizTotal = 0;
+    document.getElementById("quizFb").textContent = "Tap the structure on the model.";
+    document.getElementById("quizFb").className = "fb";
+    document.getElementById("quizScore").textContent = "";
+    nextQuiz();
+  }
+  refresh();
+});
+
+/* ================================================================ loop */
+function resize() {
+  var w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  leaders.setAttribute("width", w); leaders.setAttribute("height", h);
+  leaders.setAttribute("viewBox", "0 0 " + w + " " + h);
+}
+window.addEventListener("resize", resize);
+
+scene.background = new THREE.Color(0x0e1512);
+syncSys(); refresh(); resize();
+setSex("f");
+
+function tick() {
+  requestAnimationFrame(tick);
+  applyCam();
+  renderer.render(scene, camera);
+  updateLabels(stage.clientWidth, stage.clientHeight);
+}
+tick();
+
+var boot = document.getElementById("boot");
+setTimeout(function () { boot.style.opacity = 0; setTimeout(function () { boot.remove(); }, 520); }, 320);
+canvas.style.cursor = "grab";
+
+})();
+</script>
+</body>
+</html>
